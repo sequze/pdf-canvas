@@ -1,0 +1,42 @@
+services:
+  rabbitmq:
+      image: rabbitmq:4.2.1-management-alpine
+      hostname: rabbitmq
+      container_name: rabbitmq
+      ports:
+        - "5672:5672"
+        - "15672:15672"
+      environment:
+        RABBITMQ_DEFAULT_USER: ${RMQ_USER}
+        RABBITMQ_DEFAULT_PASS: ${RMQ_PASS}
+      volumes:
+        - rabbitmq-data:/var/lib/rabbitmq
+
+  backend:
+    build: .
+    ports:
+      - "8000:8000"
+    depends_on:
+      - rabbitmq
+      - pg
+
+  pg:
+#    platform: linux/amd64
+    image: postgres:18
+    environment:
+      POSTGRES_USER: ${PG_USER}
+      POSTGRES_PASSWORD: ${PG_PASSWORD}
+      POSTGRES_DB: ${PG_NAME}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/18/docker
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready" ]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
+volumes:
+  rabbitmq-data:
+  pg_data:

@@ -12,14 +12,30 @@ services:
       volumes:
         - rabbitmq-data:/var/lib/rabbitmq
 
-  backend:
-    build: .
+  api:
+    build: ./api-gateway
     ports:
       - "8000:8000"
     depends_on:
       - rabbitmq
       - pg
+    environment:
+      DB__USER: ${PG_USER}
+      DB__PASSWORD: ${PG_PASSWORD}
+      DB__NAME: ${PG_NAME}
+      DB__HOST: pg
+      DB__PORT: 5432
+      RMQ__PORT: 5672
+      RMQ__HOST: rabbitmq
+      RMQ__USER: ${RMQ_USER}
+      RMQ__PASSWORD: ${RMQ_PASSWORD}
+      RMQ__EXCHANGE: ${RMQ_EXCHANGE}
+      RMQ__ROUTING_KEY: ${RMQ_ROUTING_KEY}
+      REDIS__HOST: redis
+      REDIS__PORT: 6379
 
+  pdf-worker:
+    build: ./pdf-worker
   pg:
 #    platform: linux/amd64
     image: postgres:18
@@ -37,6 +53,14 @@ services:
       timeout: 3s
       retries: 3
 
+  redis:
+    image: redis:8.4
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
 volumes:
   rabbitmq-data:
   pg_data:
+  redis_data:

@@ -18,6 +18,7 @@ class TaskSchema(BaseModel):
     id: UUID
     status: StatusEnum
     pdf_url: str | None = None
+    user_id: UUID | None = None
 
 
 class JobStage(str, Enum):

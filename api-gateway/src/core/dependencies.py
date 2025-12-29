@@ -7,6 +7,8 @@ from shared import UnitOfWork, TasksRedisClient, JobsRedisClient
 from src.auth.schemas import UserDTO
 from src.auth.utils import decode_jwt
 from src.auth.service import AuthService
+from src.auth.repository import AuthRepository
+from src.auth.user_repository import UserRepository
 from src.core.config import settings
 from src.core.db import db_helper
 from src.core.exceptions import (
@@ -25,7 +27,13 @@ http_bearer = HTTPBearer()
 def get_auth_service() -> AuthService:
     """Dependency для получения сервиса авторизации"""
     uow = UnitOfWork(db_helper.session_factory)
-    return AuthService(uow)
+    user_repository = UserRepository()
+    auth_repository = AuthRepository()
+    return AuthService(
+        uow=uow,
+        user_repository=user_repository,
+        auth_repository=auth_repository,
+    )
 
 
 def get_current_token_payload(

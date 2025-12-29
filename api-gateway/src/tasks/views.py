@@ -1,10 +1,9 @@
 from uuid import UUID
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from shared import TaskSchema
 from src.auth.schemas import UserDTO
 from src.core.config import settings
 from src.core.dependencies import get_current_active_user, get_task_service
-from src.core.exceptions import NotFoundError
 from src.tasks.schemas import CreateTaskRequest, StylesResponse
 from src.tasks.service import TasksService
 
@@ -33,7 +32,7 @@ async def get_task(
     task_service: TasksService = Depends(get_task_service),
 ) -> TaskSchema:
     """Get task by ID"""
-    return await task_service.get_task(task_id)
+    return await task_service.get_task(task_id, user.id, user.is_superuser)
 
 
 @router.post("/", response_model=TaskSchema, status_code=status.HTTP_201_CREATED)
@@ -53,4 +52,4 @@ async def delete_task(
     task_service: TasksService = Depends(get_task_service),
 ) -> None:
     """Delete task"""
-    await task_service.delete_task(task_id)
+    await task_service.delete_task(task_id, user.id, user.is_superuser)

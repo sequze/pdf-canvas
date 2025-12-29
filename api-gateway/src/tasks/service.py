@@ -3,7 +3,7 @@ from uuid import UUID
 
 from shared import UnitOfWork, Job, JobStage
 from shared import TaskMessage, TaskSchema, StatusEnum
-from src.core.exceptions import NotFoundError
+from src.core.exceptions import NotFoundError, ForbiddenError
 from src.tasks.repository import TasksSQLAlchemyRepository
 from shared import JobsRedisClient, TasksRedisClient
 from uuid_extensions import uuid7
@@ -38,6 +38,7 @@ class TasksService:
             id=task_id,
             status=StatusEnum.PROCESSING,
             pdf_url="",
+            user_id=user_id,
         )
         job = Job(
             id=task_id,
@@ -75,14 +76,27 @@ class TasksService:
             task = await self.sqla_repository.get_by_id(uow.session, task_id)
             if not task:
                 raise NotFoundError(f"Task with id {task_id} not found")
-            return TaskSchema(status=StatusEnum.READY, id=task.id, pdf_url=task.pdf_url)
 
-    async def get_task(self, task_id: UUID) -> TaskSchema:
-        # Try find task in Redis
+            return TaskSchema(
+                status=StatusEnum.READY,
+                id=task.id,
+                pdf_url=task.pdf_url,
+                user_id=task.user_id,
+            )
+
+    async def get_task(
+        self, task_id: UUID, user_id: UUID, is_superuser: bool = False
+    ) -> TaskSchema:
+        # Try to find task in Redis
         task = await self.tasks_redis_cli.get_task(task_id)
+
+        # If not found in Redis, try get from DB with ownership check
         if not task:
-            # If not found in Redis, try get from DB
-            return await self._get_task_from_db(task_id)
+            task = await self._get_task_from_db(task_id)
+
+        # Check access
+        if not (is_superuser or task.user_id == user_id):
+            raise ForbiddenError("Access denied to this task")
         return task
 
     async def get_user_tasks(self, user_id: UUID) -> list[TaskSchema]:
@@ -94,12 +108,21 @@ class TasksService:
                     id=task.id,
                     status=StatusEnum.READY,
                     pdf_url=task.pdf_url,
+                    user_id=task.user_id,
                 )
                 for task in tasks
             ]
 
-    async def delete_task(self, task_id: UUID) -> None:
-        """Delete task from DB"""
+    async def delete_task(
+        self, task_id: UUID, user_id: UUID, is_superuser: bool = False
+    ) -> None:
+        """Delete task from DB with ownership check"""
         async with self.uow as uow:
+            task = await self.sqla_repository.get_by_id(uow.session, task_id)
+
+            # Check access
+            if not (is_superuser or task.user_id == user_id):
+                raise ForbiddenError("Access denied to this task")
+
             await self.sqla_repository.delete(uow.session, task_id)
             await uow.commit()

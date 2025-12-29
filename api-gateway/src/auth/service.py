@@ -20,12 +20,15 @@ from src.core.exceptions import (
 
 
 class AuthService:
-    user_repository = UserRepository
-    auth_repository = AuthRepository
-
-    def __init__(self, uow: UnitOfWork):
-        # TODO: add DI
+    def __init__(
+        self,
+        uow: UnitOfWork,
+        user_repository: UserRepository,
+        auth_repository: AuthRepository,
+    ):
         self.uow = uow
+        self.user_repository = user_repository
+        self.auth_repository = auth_repository
 
     def _create_token(self, payload: dict, token_type: str, expire_minutes: int) -> str:
         """Create JWT token"""

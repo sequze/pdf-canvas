@@ -56,7 +56,9 @@ class JobsRedisClient(RedisClient):
 
 class TasksRedisClient(RedisClient):
     async def create_task(self, task: TaskSchema):
-        return await self._create_task(task.id, task.model_dump(exclude={"id"}))
+        payload = task.model_dump(exclude={"id"})
+        payload.update(user_id=str(task.user_id))
+        return await self._create_task(task.id, payload)
 
     async def _create_task(self, task_id: UUID, payload: dict):
         name = f"task:{task_id}"

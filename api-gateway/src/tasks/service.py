@@ -3,7 +3,7 @@ from uuid import UUID
 
 from shared import UnitOfWork, Job, JobStage
 from shared import TaskMessage, TaskSchema, StatusEnum
-from src.core.exceptions import NotFoundError, ForbiddenError
+from src.core.exceptions import NotFoundError, ForbiddenError, EntityTooLargeError
 from src.tasks.repository import TasksSQLAlchemyRepository
 from shared import JobsRedisClient, TasksRedisClient
 from uuid_extensions import uuid7
@@ -25,12 +25,11 @@ class TasksService:
         self.uow = uow
 
     async def create_task(self, data: str, user_id: UUID) -> TaskSchema:
-        # TODO: validate data size?
-        # TODO: Remove hardcoded params
         # Validate input data size
-        MAX_INPUT_SIZE = 1024 * 64  # 64 KB
-        if len(data.encode("utf-8")) > MAX_INPUT_SIZE:
-            raise ValueError(f"Input data too large. Max size: {MAX_INPUT_SIZE} bytes")
+        if len(data.encode("utf-8")) > settings.tasks.max_input_size:
+            raise EntityTooLargeError(
+                f"Input data too large. Max size: {settings.tasks.max_input_size} bytes"
+            )
 
         # Generate task id
         task_id = uuid7()

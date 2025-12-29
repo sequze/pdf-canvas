@@ -6,6 +6,7 @@ from src.core.exceptions import (
     ConflictError,
     ForbiddenError,
     AuthError,
+    EntityTooLargeError,
 )
 from src.core.logger import logger
 from .core.utils import get_time, get_uuid
@@ -73,6 +74,8 @@ class ErrorProcessor:
             status_code = 409
         elif isinstance(exc, AuthError):
             status_code = 401
+        elif isinstance(exc, EntityTooLargeError):
+            status_code = 413
         else:
             status_code = 400
 

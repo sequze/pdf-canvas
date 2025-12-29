@@ -39,3 +39,9 @@ class NotFoundError(AppError):
 
 class ConflictError(AppError):
     message = "Conflict"
+
+
+class EntityTooLargeError(AuthError):
+    """413 status code error"""
+
+    message = "Entity is too large"

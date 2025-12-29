@@ -14,6 +14,7 @@ from src.core.dependencies import (
     get_current_active_user,
     get_token_for_refresh,
 )
+from src.core.config import settings
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -42,7 +43,7 @@ async def login(
         httponly=True,
         secure=True,
         samesite="lax",
-        max_age=30 * 24 * 60 * 60,  # 30 days
+        max_age=settings.auth.refresh_token_cookie_max_age,
     )
     return token
 
@@ -73,7 +74,7 @@ async def refresh_token(
         httponly=True,
         secure=True,
         samesite="lax",
-        max_age=30 * 24 * 60 * 60,
+        max_age=settings.auth.refresh_token_cookie_max_age,
     )
     return token
 

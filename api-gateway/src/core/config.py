@@ -73,6 +73,13 @@ class ApiPrefix(BaseModel):
     tasks: str = "/tasks"
 
 
+class TasksSettings(BaseModel):
+    """Settings for tasks processing"""
+
+    # Maximum input data size in bytes (64 KB by default)
+    max_input_size: int = 1024 * 64
+
+
 class AuthJWTConfig(BaseModel):
     private_key_path: Path = BASE_DIR / "src" / "certs" / "jwt-private.pem"
     public_key_path: Path = BASE_DIR / "src" / "certs" / "jwt-public.pem"
@@ -82,6 +89,19 @@ class AuthJWTConfig(BaseModel):
     token_type_field: str = "type"
     access_token_field: str = "access"
     refresh_token_field: str = "refresh"
+    refresh_token_cookie_max_age: int = 30 * 24 * 60 * 60
+
+
+class EmailSettings(BaseModel):
+    """Settings for sending emails and verification links"""
+
+    smtp_host: str = "localhost"
+    smtp_port: int = 1025
+    default_from: str = "textcanvas@mail.ru"
+    # Base URL used to form verification links, without the token query param
+    verification_base_url: str = "http://0.0.0.0:8000/api/v1/auth/verify"
+    # Token lifetime for email verification in minutes
+    verification_token_expire_minutes: int = 15
 
 
 class Settings(BaseSettings):
@@ -92,6 +112,8 @@ class Settings(BaseSettings):
     api: ApiPrefix = ApiPrefix()
     auth: AuthJWTConfig = AuthJWTConfig()
     style: StyleSettings = StyleSettings()
+    email: EmailSettings = EmailSettings()
+    tasks: TasksSettings = TasksSettings()
     rmq: BrokerConfig
     redis: RedisConfig
     model_config = SettingsConfigDict(

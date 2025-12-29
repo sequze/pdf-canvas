@@ -1,4 +1,6 @@
+import logging
 from fastapi import Request, Response, HTTPException
+from slowapi.errors import RateLimitExceeded
 
 from src.core.exceptions import (
     AppError,
@@ -8,9 +10,10 @@ from src.core.exceptions import (
     AuthError,
     EntityTooLargeError,
 )
-from src.core.logger import logger
 from .core.utils import get_time, get_uuid
 from fastapi.responses import JSONResponse
+
+logger = logging.getLogger(__name__)
 
 
 async def request_handler(request: Request, call_next):
@@ -23,45 +26,57 @@ async def request_handler(request: Request, call_next):
     start_time = get_time(seconds_precision=False)
     request_id = get_uuid()
 
-    with logger.contextualize(request_id=request_id):
-        logger.bind(url=str(request.url), method=request.method).debug(
-            "Request started"
+    adapter = logging.LoggerAdapter(logger, {"request_id": request_id})
+    adapter.debug(
+        "Request started", extra={"url": str(request.url), "method": request.method}
+    )
+
+    try:
+        response: Response = await call_next(request)
+
+    except AppError as exc:
+        response = ErrorProcessor.process_app_exception(exc)
+
+    except RateLimitExceeded:
+        response = JSONResponse(
+            status_code=429,
+            content={"detail": "Too Many Requests"},
         )
 
-        try:
-            response: Response = await call_next(request)
+    except HTTPException as exc:
+        response = ErrorProcessor.process_http_exception(exc)
 
-        except AppError as exc:
-            response = ErrorProcessor.process_app_exception(exc)
+    except Exception as exc:
+        adapter.exception("Request failed due to unexpected error")
+        response = JSONResponse(
+            status_code=500,
+            content={"detail": "Internal Server Error"},
+        )
 
-        except HTTPException as exc:
-            response = ErrorProcessor.process_http_exception(exc)
-
-        except Exception:
-            logger.opt(exception=True).error("Request failed due to unexpected error")
-            response = JSONResponse(
-                status_code=500,
-                content={"detail": "Internal Server Error"},
-            )
-
-        end_time = get_time(seconds_precision=False)
-        time_elapsed = round(end_time - start_time, 5)
-        logger.bind(
-            time_elapsed=time_elapsed, response_status=response.status_code
-        ).debug("Request ended")
-        return response
+    end_time = get_time(seconds_precision=False)
+    time_elapsed = round(end_time - start_time, 5)
+    adapter.debug(
+        "Request ended",
+        extra={
+            "time_elapsed": time_elapsed,
+            "response_status": getattr(response, "status_code", 500),
+        },
+    )
+    return response
 
 
 class ErrorProcessor:
     @classmethod
     def log_exception(cls, exc: Exception, status_code: int) -> None:
         if status_code < 500:
-            logger.bind(exception=str(exc)).info(
-                "Request did not succeed due to client-side error"
+            logger.info(
+                "Request did not succeed due to client-side error",
+                extra={"exception": str(exc)},
             )
         else:
-            logger.opt(exception=True).warning(
-                "Request did not succeed due to server-side error"
+            logger.warning(
+                "Request did not succeed due to server-side error",
+                extra={"exception": str(exc)},
             )
 
     @classmethod

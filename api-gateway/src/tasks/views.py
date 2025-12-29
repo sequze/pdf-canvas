@@ -1,6 +1,7 @@
 from uuid import UUID
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, Request
 from shared import TaskSchema
+from src.core.limiter import limiter
 from src.auth.schemas import UserDTO
 from src.core.config import settings
 from src.core.dependencies import get_current_active_user, get_task_service
@@ -36,7 +37,9 @@ async def get_task(
 
 
 @router.post("/", response_model=TaskSchema, status_code=status.HTTP_201_CREATED)
+@limiter.limit("3/5minute")
 async def create_task(
+    request: Request,
     task: CreateTaskRequest,
     user: UserDTO = Depends(get_current_active_user),
     task_service: TasksService = Depends(get_task_service),

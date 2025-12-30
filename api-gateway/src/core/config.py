@@ -78,6 +78,8 @@ class TasksSettings(BaseModel):
 
     # Maximum input data size in bytes (64 KB by default)
     max_input_size: int = 1024 * 64
+    # Rate limit for task creation (string format for slowapi limiter)
+    rate_limit: str = "3/5minute"
 
 
 class AuthJWTConfig(BaseModel):

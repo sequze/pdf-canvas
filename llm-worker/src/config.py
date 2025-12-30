@@ -37,7 +37,7 @@ class Settings(BaseSettings):
         env_nested_delimiter="__",
     )
     llm_prompt: PromptConfig = PromptConfig()
-    redis: RedisConfig = RedisConfig()
+    redis: RedisConfig
     rmq: BrokerConfig
 
 

@@ -37,7 +37,7 @@ async def get_task(
 
 
 @router.post("/", response_model=TaskSchema, status_code=status.HTTP_201_CREATED)
-@limiter.limit("3/5minute")
+@limiter.limit(settings.tasks.rate_limit)
 async def create_task(
     request: Request,
     task: CreateTaskRequest,

@@ -102,6 +102,10 @@ class EmailSettings(BaseModel):
     verification_base_url: str = "http://0.0.0.0:8000/api/v1/auth/verify"
     # Token lifetime for email verification in minutes
     verification_token_expire_minutes: int = 15
+    smtp_user: str
+    smtp_password: str
+    smtp_start_tls: bool = False
+    smtp_use_tls: bool = False
 
 
 class Settings(BaseSettings):
@@ -112,7 +116,7 @@ class Settings(BaseSettings):
     api: ApiPrefix = ApiPrefix()
     auth: AuthJWTConfig = AuthJWTConfig()
     style: StyleSettings = StyleSettings()
-    email: EmailSettings = EmailSettings()
+    email: EmailSettings
     tasks: TasksSettings = TasksSettings()
     rmq: BrokerConfig
     redis: RedisConfig

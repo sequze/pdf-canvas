@@ -1,11 +1,14 @@
 from email.message import EmailMessage
 
 import aiosmtplib
+import logging
 
 from src.auth.utils import encode_jwt, decode_jwt
 from src.core.exceptions import InvalidTokenError
 from src.core.config import settings
 from urllib.parse import urlencode
+
+logger = logging.getLogger(__name__)
 
 
 async def send_email(
@@ -19,11 +22,21 @@ async def send_email(
     message["To"] = to_email
     message["Subject"] = subject
     message.set_content(body)
-    await aiosmtplib.send(
-        message,
-        hostname=settings.email.smtp_host,
-        port=settings.email.smtp_port,
-    )
+    try:
+        await aiosmtplib.send(
+            message,
+            hostname=settings.email.smtp_host,
+            port=settings.email.smtp_port,
+            username=settings.email.smtp_user,
+            password=settings.email.smtp_password,
+            start_tls=settings.email.smtp_start_tls,
+            use_tls=settings.email.smtp_use_tls,
+        )
+        logger.info("Verification email sent to %s", to_email)
+    except Exception as e:
+        # log exception details for diagnostics and re-raise so caller can handle it
+        logger.exception("Failed to send verification email to %s: %s", to_email, e)
+        raise
 
 
 def generate_link_for_verification(token: str) -> str:

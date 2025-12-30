@@ -1,4 +1,5 @@
 from datetime import datetime, UTC
+from typing import Annotated
 
 from fastapi import Depends, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -113,3 +114,6 @@ def get_task_service() -> TasksService:
         sqla_repository=sqla_repo,
         uow=uow,
     )
+
+
+AuthServiceDep = Annotated[AuthService, Depends(get_auth_service)]

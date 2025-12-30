@@ -1,3 +1,4 @@
+import asyncio
 from sqlalchemy.ext.asyncio.session import AsyncSession
 from uuid import uuid4, UUID
 from datetime import datetime, UTC
@@ -6,6 +7,7 @@ from shared import UnitOfWork
 from src.core.models import User
 from src.core.config import settings
 from .repository import AuthRepository
+from .send_email import verify_verification_token, send_verification_email
 from .user_repository import UserRepository
 from .utils import decode_jwt, encode_jwt, verify_password, get_password_hash
 from .schemas import LoginSchema, RegisterSchema, UserDTO
@@ -15,7 +17,7 @@ from src.core.exceptions import (
     TokenExpiredError,
     EmailNotExistsError,
     InvalidPasswordError,
-    EmailAlreadyExistsError,
+    EmailAlreadyExistsError, ForbiddenError,
 )
 
 
@@ -98,6 +100,7 @@ class AuthService:
             }
             user = await self.user_repository.create(uow.session, user_data)
             await uow.commit()
+            asyncio.create_task(send_verification_email(data.email))
             return await self._create_tokens(uow.session, user.id, user)
 
     async def login(self, data: LoginSchema) -> Token:
@@ -176,3 +179,30 @@ class AuthService:
             if not user:
                 raise EmailNotExistsError()
             return UserDTO.model_validate(user)
+
+    async def verify_account(self, token: str):
+        async with self.uow as uow:
+            payload = verify_verification_token(token)
+            if payload is None:
+                raise InvalidTokenError
+
+            email = payload["sub"]
+            user = await self.user_repository.get_by_email(uow.session, email)
+            if user is None:
+                raise InvalidTokenError
+
+            expires_in = payload["exp"]
+            if datetime.now().timestamp() >= expires_in:
+                raise TokenExpiredError
+
+            user.is_verified = True
+            await uow.commit()
+
+    async def send_verify_email(self, email: str):
+        async with self.uow as uow:
+            user = await self.user_repository.get_by_email(uow.session, email)
+            if user is None:
+                raise EmailNotExistsError
+            if user.is_verified:
+                raise ForbiddenError("You are already verified")
+        asyncio.create_task(send_verification_email(email))

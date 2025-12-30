@@ -49,6 +49,12 @@ class RabbitWorker(AbstractRabbitConsumer):
                 job = await self.job_redis_cli.get_job(task_msg.id)
                 task = await self.tasks_redis_cli.get_task(task_msg.id)
 
+                # Ignore request if data in Redis not exists
+                if not (task and job):
+                    logger.warning(
+                        f"Task #{task_msg.id} has no Job or Task in Redis. Skipping."
+                    )
+                    return
                 logger.debug(f"Received task #{task.id}")
 
                 # TODO: add S3 upload

@@ -12,7 +12,10 @@ if __name__ == "__main__":
     async def main():
         # Create redis instance
         redis = Redis(
-            host=settings.redis.host, port=settings.redis.port, db=settings.redis.db
+            host=settings.redis.host,
+            port=settings.redis.port,
+            db=settings.redis.db,
+            decode_responses=True,
         )
 
         # Create redis clients

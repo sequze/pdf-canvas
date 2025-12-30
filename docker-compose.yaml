@@ -1,43 +1,74 @@
 services:
   rabbitmq:
-      image: rabbitmq:4.2.1-management-alpine
-      hostname: rabbitmq
-      container_name: rabbitmq
-      ports:
-        - "5672:5672"
-        - "15672:15672"
-      environment:
-        RABBITMQ_DEFAULT_USER: ${RMQ_USER}
-        RABBITMQ_DEFAULT_PASS: ${RMQ_PASS}
-      volumes:
-        - rabbitmq-data:/var/lib/rabbitmq
+    image: rabbitmq:4.2.1-management-alpine
+    hostname: rabbitmq
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: [ "CMD", "rabbitmq-diagnostics", "ping" ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RMQ_PASSWORD}
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
 
   api:
-    build: ./api-gateway
+    build:
+      context: .
+      dockerfile: api-gateway/Dockerfile
     ports:
       - "8000:8000"
     depends_on:
-      - rabbitmq
-      - pg
+      rabbitmq:
+        condition: service_healthy
+      pg:
+        condition: service_healthy
+      redis:
+        condition: service_started
     environment:
       DB__USER: ${PG_USER}
       DB__PASSWORD: ${PG_PASSWORD}
       DB__NAME: ${PG_NAME}
       DB__HOST: pg
       DB__PORT: 5432
-      RMQ__PORT: 5672
-      RMQ__HOST: rabbitmq
+      RMQ__PORT: ${RMQ_PORT}
+      RMQ__HOST: "rabbitmq"
       RMQ__USER: ${RMQ_USER}
       RMQ__PASSWORD: ${RMQ_PASSWORD}
-      RMQ__EXCHANGE: ${RMQ_EXCHANGE}
-      RMQ__ROUTING_KEY: ${RMQ_ROUTING_KEY}
+      RMQ__EXCHANGE: ${API_EXCHANGE}
+      RMQ__PRODUCER_QUEUE: ${API_PRODUCER_QUEUE}
+      RMQ__CONSUMER_QUEUE: ${API_CONSUMER_QUEUE}
+      RMQ__ROUTING_KEY:
       REDIS__HOST: redis
       REDIS__PORT: 6379
+      REDIS__DB: ${REDIS_DB}
+      EMAIL__SMTP_HOST: ${EMAIL_SMTP_HOST}
+      EMAIL__SMTP_PORT: ${EMAIL_SMTP_PORT}
+      EMAIL__SMTP_USER: ${EMAIL_SMTP_USER}
+      EMAIL__SMTP_PASSWORD: ${EMAIL_SMTP_PASSWORD}
 
-  pdf-worker:
-    build: ./pdf-worker
+
+  maildev:
+    image: maildev/maildev
+    environment:
+      - TZ=Europe/Moscow
+      - MAILDEV_WEB_PORT=8080
+      - MAILDEV_SMTP_PORT=1025
+    ports:
+      - "8080:8080"
+      - "1025:1025"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1m"
+
   pg:
-#    platform: linux/amd64
+    #    platform: linux/amd64
     image: postgres:18
     environment:
       POSTGRES_USER: ${PG_USER}
@@ -59,7 +90,52 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
+  llm-worker:
+    build:
+      context: .
+      dockerfile: llm-worker/Dockerfile
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      LLM__YANDEX_CLOUD_FOLDER: ${LLM_YANDEX_CLOUD_FOLDER}
+      LLM__YANDEX_CLOUD_API_KEY: ${LLM_YANDEX_CLOUD_API_KEY}
+      LLM__YANDEX_CLOUD_MODEL: ${LLM_YANDEX_CLOUD_MODEL}
+      LLM__BASE_URL: ${LLM_BASE_URL}
+      RMQ__PORT: 5672
+      RMQ__HOST: "rabbitmq"
+      RMQ__USER: ${RMQ_USER}
+      RMQ__PASSWORD: ${RMQ_PASSWORD}
+      RMQ__EXCHANGE: ${LLM_EXCHANGE}
+      RMQ__CONSUMER_QUEUE: ${LLM_CONSUMER_QUEUE}
+      RMQ__PRODUCER_QUEUE: ${LLM_PRODUCER_QUEUE}
+      REDIS__HOST: "redis"
+      REDIS__PORT: 6379
+      REDIS__DB: ${REDIS_DB}
 
+  pdf-worker:
+    build:
+      context: .
+      dockerfile: pdf-worker/Dockerfile
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      pg:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      REDIS__HOST: "redis"
+      REDIS__PORT: 6379
+      RMQ__PORT: 5672
+      RMQ__HOST: "rabbitmq"
+      RMQ__USER: ${RMQ_USER}
+      RMQ__PASSWORD: ${RMQ_PASSWORD}
+      RMQ__EXCHANGE: ${PDF_EXCHANGE}
+      RMQ__CONSUMER_QUEUE: ${PDF_CONSUMER_QUEUE}
+      RMQ__PRODUCER_QUEUE: ${PDF_PRODUCER_QUEUE}
 volumes:
   rabbitmq-data:
   pg_data:

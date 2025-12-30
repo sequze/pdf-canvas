@@ -45,9 +45,11 @@ class JobsRedisClient(RedisClient):
         )
         await self.client.expire(name, self.config.jobs_ttl)
 
-    async def get_job(self, id: UUID) -> Job:
+    async def get_job(self, id: UUID) -> Job | None:
         name = f"job:{id}"
         data = await self.client.hgetall(name)
+        if not data:
+            return None
         return Job(id=id, **data)
 
     async def delete_job(self, task_id: UUID):

@@ -41,9 +41,11 @@ class LLMHelper:
         )
 
     async def make_request(self, prompt: str):
-        return await self.client.responses.create(
+        res = await self.client.responses.create(
             model=self.model,
             temperature=self.temperature,
             instructions=self.instruction,
             input=prompt,
         )
+        return res.output[0].content[0].text
+

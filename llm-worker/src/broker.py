@@ -50,8 +50,7 @@ class LLMRabbitWorker(AbstractRabbitWorker):
                 # Make request to LLM
                 # TODO: move to a separate function
                 #  and raise 503 error if empty response
-                res = await self.llm.make_request(job.input_text)
-                md_text = res.output[0].content[0].text
+                md_text = await self.llm.make_request(job.input_text)
 
                 if md_text:
                     # Save result to Redis and send to next worker

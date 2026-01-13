@@ -3,16 +3,7 @@ FROM python:3.13
 
 RUN pip install --upgrade pip wheel "poetry"
 
-COPY shared ./shared
-
-WORKDIR /app
-
-COPY pdf-worker/pyproject.toml pdf-worker/poetry.lock ./
-
-RUN poetry config virtualenvs.create false
-
-RUN poetry install --no-root
-
+RUN pip install playwright
 # Установка системных зависимостей для Playwright
 RUN apt-get update && apt-get install -y \
     libnss3 \
@@ -35,6 +26,16 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 RUN playwright install chromium
+
+COPY shared ./shared
+
+WORKDIR /app
+
+COPY pdf-worker/pyproject.toml pdf-worker/poetry.lock ./
+
+RUN poetry config virtualenvs.create false
+
+RUN poetry install --no-root
 
 COPY pdf-worker/ .
 

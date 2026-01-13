@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from shared import (
     AbstractRabbitWorker,
@@ -8,6 +8,7 @@ from shared import (
     JobsRedisClient,
     JobStage,
 )
+from src.config import settings
 from src.llm import LLMHelper
 
 if TYPE_CHECKING:
@@ -27,47 +28,48 @@ class LLMRabbitWorker(AbstractRabbitWorker):
         port: int = 5672,
         login: str = "guest",
         password: str = "guest",
+        max_retries: int = 3,
+        dlx: str | None = None,
+        last_resort_queue: str | None = None,
     ):
-        super().__init__(host, port, login, password)
+        super().__init__(host, port, login, password, max_retries, dlx, last_resort_queue)
         self.producer_queue = producer_queue
         self.jobs_redis_cli = jobs_redis_cli
         self.llm = llm_worker
 
     async def process_message(self, message: "AbstractIncomingMessage"):
-        # TODO: добавить DLQ
-        async with message.process():
-            try:
-                # Deserialize message
-                task = TaskMessage.model_validate(json.loads(message.body.decode()))
+        try:
+            # Deserialize message
+            task = TaskMessage.model_validate(json.loads(message.body.decode()))
 
-                # Get data from Redis
-                job = await self.jobs_redis_cli.get_job(task.id)
-                job.stage = JobStage.MARKDOWN
-                logger.debug(
-                    f"Received task: Task #{id}. Processing text: {job.input_text[:50]}..."
+            # Get data from Redis
+            job = await self.jobs_redis_cli.get_job(task.id)
+            job.stage = JobStage.MARKDOWN
+            logger.debug(
+                f"Received task: Task #{id}. Processing text: {job.input_text[:50]}..."
+            )
+
+            # Make request to LLM
+            # TODO: move to a separate function
+            #  and raise 503 error if empty response
+            md_text = await self.llm.make_request(job.input_text)
+
+            if md_text:
+                # Save result to Redis and send to next worker
+                job.markdown = md_text
+                await self.jobs_redis_cli.put_job(job)
+                # TODO: add to configs publisher_exchange
+                await self.publish_message(
+                    exchange=settings.rmq.exchange,
+                    routing_key=self.producer_queue,
+                    message=json.dumps(task.model_dump()).encode(),
                 )
-
-                # Make request to LLM
-                # TODO: move to a separate function
-                #  and raise 503 error if empty response
-                md_text = await self.llm.make_request(job.input_text)
-
-                if md_text:
-                    # Save result to Redis and send to next worker
-                    job.markdown = md_text
-                    await self.jobs_redis_cli.put_job(job)
-                    await self.publish_message(
-                        routing_key=self.producer_queue,
-                        message=json.dumps(task.model_dump()).encode(),
-                    )
-                    logger.debug(
-                        f"Processed task: Task #{id}. Sent message to PDF-Worker."
-                    )
-            except Exception as e:
-                logger.error(f"Failed to process task: {e}", exc_info=True)
-                try:
-                    job.markdown = ""
-                    job.error = str(e)
-                    await self.jobs_redis_cli.put_job(job)
-                except Exception:
-                    logger.exception("Failed to persist error state")
+                logger.debug(
+                    f"Processed task: Task #{id}. Sent message to PDF-Worker."
+                )
+                await message.ack()
+                return
+            await message.nack(requeue=False)
+        except Exception as e:
+            await message.nack(requeue=False)
+            logger.error(f"Failed to process task: {e}", exc_info=True)

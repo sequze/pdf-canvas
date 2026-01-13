@@ -1,7 +1,7 @@
 import json
 import logging
 import pathlib
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from shared import (
     AbstractRabbitConsumer,
@@ -31,62 +31,51 @@ class RabbitWorker(AbstractRabbitConsumer):
         port: int = 5672,
         login: str = "guest",
         password: str = "guest",
+        max_retries: int = 3,
+        dlx: str | None = None,
+        last_resort_queue: str | None = None,
     ):
-        super().__init__(host, port, login, password)
+        super().__init__(host, port, login, password, max_retries, dlx, last_resort_queue)
         self.tasks_redis_cli = tasks_redis_cli
         self.job_redis_cli = job_redis_cli
         self.md_worker = md_worker
 
     async def process_message(self, message: "AbstractIncomingMessage"):
-        async with message.process():
-            try:
-                # deserialize message
-                task_msg = TaskMessage.model_validate(
-                    json.loads(message.body.decode(encoding="utf-8"))
+        try:
+            # deserialize message
+            task_msg = TaskMessage.model_validate(
+                json.loads(message.body.decode(encoding="utf-8"))
+            )
+
+            # get data from redis
+            job = await self.job_redis_cli.get_job(task_msg.id)
+            task = await self.tasks_redis_cli.get_task(task_msg.id)
+
+            # Ignore request if data in Redis not exists
+            if not (task and job):
+                logger.warning(
+                    f"Task #{task_msg.id} has no Job or Task in Redis. Skipping."
                 )
+                return
+            logger.debug(f"Received task #{task.id}")
 
-                # get data from redis
-                job = await self.job_redis_cli.get_job(task_msg.id)
-                task = await self.tasks_redis_cli.get_task(task_msg.id)
+            # TODO: add S3 upload
+            # convert file and save
+            path = (
+                pathlib.Path(__file__).parent.parent.parent
+                / f"tmp/pdf_{task.id}.pdf"
+            )
+            await self.md_worker.convert_file_to_pdf(job.markdown, str(path))
 
-                # Ignore request if data in Redis not exists
-                if not (task and job):
-                    logger.warning(
-                        f"Task #{task_msg.id} has no Job or Task in Redis. Skipping."
-                    )
-                    return
-                logger.debug(f"Received task #{task.id}")
-
-                # TODO: add S3 upload
-                # convert file and save
-                path = (
-                    pathlib.Path(__file__).parent.parent.parent
-                    / f"tmp/pdf_{task.id}.pdf"
-                )
-                await self.md_worker.convert_file_to_pdf(job.markdown, str(path))
-
-                # update task and job status
-                task.pdf_url = str(path)
-                task.status = StatusEnum.READY
-                job.result_pdf_url = task.pdf_url
-                await self.tasks_redis_cli.create_task(task)
-                await self.job_redis_cli.put_job(job)
-                logger.debug(f"Processed task: Task #{task.id}")
-            except Exception as e:
-                logger.exception(f"Error processing message")
-
-                # update job and task status
-                job.error = str(e)
-                job.stage = JobStage.ERROR
-                task.status = StatusEnum.FAILED
-                # TODO: message to DLQ
-                try:
-                    job.error = str(e)
-                    job.stage = JobStage.ERROR
-                    task.status = StatusEnum.FAILED
-
-                    await self.job_redis_cli.put_job(job)
-                    await self.tasks_redis_cli.create_task(task)
-
-                except Exception:
-                    logger.exception("Failed to persist error state")
+            # update task and job status
+            task.pdf_url = str(path)
+            task.status = StatusEnum.READY
+            job.result_pdf_url = task.pdf_url
+            await self.tasks_redis_cli.create_task(task)
+            await self.job_redis_cli.put_job(job)
+            logger.debug(f"Processed task: Task #{task.id}")
+            await message.ack()
+            # TODO: send message
+        except Exception as e:
+            await message.nack(requeue=False)
+            logger.exception(f"Error processing message")

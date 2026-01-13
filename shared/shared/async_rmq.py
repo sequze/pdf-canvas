@@ -54,35 +54,70 @@ class RabbitHelper:
 
 
 class RabbitPublisher(RabbitHelper):
-
-    async def publish_message(self, routing_key: str, message: bytes):
-        await self.channel.declare_queue(routing_key, durable=True)
-
+    async def publish_message(self, routing_key: str, exchange: str, message: bytes):
+        exchange = await self._channel.get_exchange(exchange)
         logger.debug(f"Sending message {message} to #{routing_key} queue")
-        await self.channel.default_exchange.publish(
+        await exchange.publish(
             aio_pika.Message(message), routing_key=routing_key
         )
 
 
 class AbstractRabbitConsumer(RabbitHelper, ABC):
+    def __init__(
+        self,
+        host: str = "localhost",
+        port: int = 5672,
+        login: str = "guest",
+        password: str = "guest",
+        max_retries: int = 3,
+        dlx: str | None = None,
+        last_resort_queue: str | None = None,
+    ):
+        super().__init__(host, port, login, password)
+        self.max_retries = max_retries
+        self.dlx = dlx
+        self.last_resort_queue = last_resort_queue
 
     @abstractmethod
     async def process_message(
         self,
         message: "AbstractIncomingMessage",
-    ): ...
+    ):
+        ...
+
+    @staticmethod
+    def get_message_deaths_count(message: "AbstractIncomingMessage") -> int:
+        x_death_headers = message.headers.get("x-death")
+        if x_death_headers:
+            for props in x_death_headers:
+                if isinstance(props, dict) and "count" in props:
+                    return int(props["count"])
+        return 0
+
+    async def check_and_process_message(
+            self,
+            message: "AbstractIncomingMessage",
+    ):
+        deaths_count = self.get_message_deaths_count(message)
+        # If deaths_count exceeds max_retries, send message to last resort queue
+        if deaths_count > self.max_retries:
+            logger.info(
+                f"[-] Message failed after {self.max_retries} retries."
+                f" Sending message to last resort queue."
+            )
+            if self.dlx and self.last_resort_queue:
+                dlx = await self.channel.get_exchange(self.dlx)
+                await dlx.publish(message, routing_key=self.last_resort_queue)
+            await message.ack()
+            return None
+        return await self.process_message(message)
 
     async def start_consuming(self, queue_name: str):
         await self.channel.set_qos(prefetch_count=1)
-
-        # Declaring queue
-        queue = await self.channel.declare_queue(
-            queue_name,
-            durable=True,
-        )
+        queue = await self.channel.get_queue(queue_name)
 
         # Start listening the queue
-        await queue.consume(self.process_message)
+        await queue.consume(self.check_and_process_message)
 
         await asyncio.Future()
 

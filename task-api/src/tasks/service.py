@@ -1,6 +1,6 @@
 import json
+import logging
 from uuid import UUID
-
 from shared import UnitOfWork, Job, JobStage
 from shared import TaskMessage, TaskSchema, StatusEnum
 from src.core.exceptions import NotFoundError, ForbiddenError, EntityTooLargeError
@@ -10,7 +10,7 @@ from uuid_extensions import uuid7
 from src.core.broker import rabbit
 from src.core.config import settings
 
-
+logger = logging.getLogger(__name__)
 class TasksService:
     def __init__(
         self,
@@ -59,10 +59,14 @@ class TasksService:
             msg = TaskMessage(id=str(task_id))
 
             # publish a message in broker
+            logger.debug("Publishing message: %s", msg)
             await rabbit.publish_message(
                 settings.rmq.producer_queue,
+                settings.rmq.exchange,
                 json.dumps(msg.model_dump()).encode(),
             )
+            logger.debug("Published message: %s. Exchange: %s, queue: %s", msg,settings.rmq.producer_queue,
+                settings.rmq.exchange)
         except Exception:
             # rollback in case of error
             await self.tasks_redis_cli.delete_task(task_id)

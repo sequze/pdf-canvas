@@ -14,7 +14,9 @@ class AuthRepository:
         await session.refresh(token)
         return token
 
-    async def get_by_filters(self, session: AsyncSession, filters: dict) -> RefreshSession | None:
+    async def get_by_filters(
+        self, session: AsyncSession, filters: dict
+    ) -> RefreshSession | None:
         """Get session by filters"""
         stmt = select(RefreshSession).filter_by(**filters)
         result = await session.execute(stmt)

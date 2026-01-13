@@ -17,7 +17,8 @@ from src.core.exceptions import (
     TokenExpiredError,
     EmailNotExistsError,
     InvalidPasswordError,
-    EmailAlreadyExistsError, ForbiddenError,
+    EmailAlreadyExistsError,
+    ForbiddenError,
 )
 
 
@@ -135,7 +136,10 @@ class AuthService:
                 raise InvalidTokenError()
 
             payload = decode_jwt(token.refresh_token)
-            if payload.get(settings.auth.token_type_field) != settings.auth.refresh_token_field:
+            if (
+                payload.get(settings.auth.token_type_field)
+                != settings.auth.refresh_token_field
+            ):
                 raise InvalidTokenError()
 
             email = payload["sub"]

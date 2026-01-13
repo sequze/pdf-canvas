@@ -31,10 +31,7 @@ def decode_jwt(
 ) -> dict:
     try:
         decoded_jwt = jwt.decode(
-            jwt_token,
-            public_key,
-            algorithms=[algorithm],
-            options={'verify_exp': False}
+            jwt_token, public_key, algorithms=[algorithm], options={"verify_exp": False}
         )
     except DecodeError:
         raise InvalidTokenError("Error decoding jwt token")

@@ -11,7 +11,6 @@ class TasksSQLAlchemyRepository:
 
     async def save(self, session: AsyncSession, data: dict):
         session.add(Task(**data))
-        await session.commit()
 
     async def get_by_id(self, session: AsyncSession, id: UUID) -> Task | None:
         return await session.get(Task, id)

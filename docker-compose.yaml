@@ -20,7 +20,7 @@ services:
   api:
     build:
       context: .
-      dockerfile: api-gateway/Dockerfile
+      dockerfile: task-api/Dockerfile
     ports:
       - "8000:8000"
     depends_on:
@@ -40,10 +40,10 @@ services:
       RMQ__HOST: "rabbitmq"
       RMQ__USER: ${RMQ_USER}
       RMQ__PASSWORD: ${RMQ_PASSWORD}
-      RMQ__EXCHANGE: ${API_EXCHANGE}
+      RMQ__EXCHANGE: ${RMQ_EXCHANGE}
       RMQ__PRODUCER_QUEUE: ${API_PRODUCER_QUEUE}
       RMQ__CONSUMER_QUEUE: ${API_CONSUMER_QUEUE}
-      RMQ__ROUTING_KEY:
+      RMQ__DLX: ${RMQ_DLX}
       REDIS__HOST: redis
       REDIS__PORT: 6379
       REDIS__DB: ${REDIS_DB}
@@ -79,7 +79,7 @@ services:
     volumes:
       - pg_data:/var/lib/postgresql/18/docker
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready" ]
+      test: [ "CMD-SHELL", "pg_isready -U ${PG_USER} -d ${PG_NAME}" ]
       interval: 5s
       timeout: 3s
       retries: 3
@@ -108,9 +108,10 @@ services:
       RMQ__HOST: "rabbitmq"
       RMQ__USER: ${RMQ_USER}
       RMQ__PASSWORD: ${RMQ_PASSWORD}
-      RMQ__EXCHANGE: ${LLM_EXCHANGE}
+      RMQ__EXCHANGE: ${RMQ_EXCHANGE}
       RMQ__CONSUMER_QUEUE: ${LLM_CONSUMER_QUEUE}
       RMQ__PRODUCER_QUEUE: ${LLM_PRODUCER_QUEUE}
+      RMQ__DLX: ${RMQ_DLX}
       REDIS__HOST: "redis"
       REDIS__PORT: 6379
       REDIS__DB: ${REDIS_DB}
@@ -133,9 +134,10 @@ services:
       RMQ__HOST: "rabbitmq"
       RMQ__USER: ${RMQ_USER}
       RMQ__PASSWORD: ${RMQ_PASSWORD}
-      RMQ__EXCHANGE: ${PDF_EXCHANGE}
+      RMQ__EXCHANGE: ${RMQ_EXCHANGE}
       RMQ__CONSUMER_QUEUE: ${PDF_CONSUMER_QUEUE}
       RMQ__PRODUCER_QUEUE: ${PDF_PRODUCER_QUEUE}
+      RMQ__DLX: ${RMQ_DLX}
 volumes:
   rabbitmq-data:
   pg_data:

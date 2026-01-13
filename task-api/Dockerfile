@@ -6,14 +6,14 @@ COPY shared ./shared
 
 WORKDIR /app
 
-COPY api-gateway/pyproject.toml api-gateway/poetry.lock ./
+COPY task-api/pyproject.toml task-api/poetry.lock ./
 
 RUN poetry config virtualenvs.create false
 
 RUN poetry install --no-root
 
 
-COPY api-gateway/ .
+COPY task-api/ .
 
 
 CMD ["python", "-m", "src.main"]

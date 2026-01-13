@@ -12,6 +12,7 @@ class RegisterSchema(BaseModel):
     email: EmailStr
     password: str
 
+
 class UserDTO(BaseModel):
     id: UUID
     email: EmailStr

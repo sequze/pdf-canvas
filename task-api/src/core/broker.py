@@ -1,6 +1,8 @@
 from shared import RabbitPublisher
 from src.core.config import settings
 
+# Create topology config for API producer
+
 rabbit = RabbitPublisher(
     host=settings.rmq.host,
     port=settings.rmq.port,

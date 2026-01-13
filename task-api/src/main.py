@@ -14,12 +14,12 @@ from shared import configure_logging
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    await rabbit.__aenter__()
-    # startup
-    yield
-    # shutdown
-    await db_helper.dispose()
-    await redis_client.close()
+    async with rabbit:
+        # startup
+        yield
+        # shutdown
+        await db_helper.dispose()
+        await redis_client.close()
 
 
 app = FastAPI(

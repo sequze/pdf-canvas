@@ -21,7 +21,9 @@ class UserRepository:
 
     async def get_by_id(self, session: AsyncSession, user_id: UUID) -> User | None:
         """Get user by ID"""
-        res = await session.execute(self._filter_deleted(select(User).where(User.id == user_id)))
+        res = await session.execute(
+            self._filter_deleted(select(User).where(User.id == user_id))
+        )
         return res.scalar_one_or_none()
 
     async def get_by_email(self, session: AsyncSession, email: str) -> User | None:

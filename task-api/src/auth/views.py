@@ -6,7 +6,8 @@ from .token import Token
 from src.core.dependencies import (
     get_current_user,
     get_current_active_user,
-    get_token_for_refresh, AuthServiceDep,
+    get_token_for_refresh,
+    AuthServiceDep,
 )
 from src.core.config import settings
 from ..core.exceptions import InvalidTokenError, TokenExpiredError
@@ -115,12 +116,13 @@ async def verify_account(
     except (InvalidTokenError, TokenExpiredError):
         return "<h3>Неверная или просроченная ссылка</h3>"
 
+
 @router.get("/send-verification-email")
 @limiter.limit("1/3minute")
 async def send_verify_email(
-        request: Request,
-        service: AuthServiceDep,
-        user: UserDTO = Depends(get_current_user),
+    request: Request,
+    service: AuthServiceDep,
+    user: UserDTO = Depends(get_current_user),
 ):
     """Send verification email"""
     await service.send_verify_email(user.email)

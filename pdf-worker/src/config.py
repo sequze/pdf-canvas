@@ -16,6 +16,15 @@ class MarkdownConfig(BaseModel):
     }
 
 
+class AwsConfig(BaseModel):
+    access_key: str
+    secret_key: str
+    endpoint_url: str
+    bucket_name: str
+    domain: str
+    folder: str | None = None
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=ENV_PATH,
@@ -26,6 +35,7 @@ class Settings(BaseSettings):
     rmq: BrokerConfig
     md: MarkdownConfig = MarkdownConfig()
     redis: RedisConfig
+    aws: AwsConfig
 
 
 settings = Settings()

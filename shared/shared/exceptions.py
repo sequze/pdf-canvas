@@ -8,3 +8,6 @@ class AppError(Exception):
 
 class RabbitError(AppError):
     message = "Error with RabbitMQ"
+
+class AwsError(AppError):
+    message = "Error with AWS"

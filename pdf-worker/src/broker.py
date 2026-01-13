@@ -11,6 +11,7 @@ from shared import (
     StatusEnum,
     JobStage,
 )
+from src.s3.utils import FileUploadService
 
 if TYPE_CHECKING:
     from aio_pika.abc import AbstractIncomingMessage
@@ -59,16 +60,12 @@ class RabbitWorker(AbstractRabbitConsumer):
                 return
             logger.debug(f"Received task #{task.id}")
 
-            # TODO: add S3 upload
             # convert file and save
-            path = (
-                pathlib.Path(__file__).parent.parent.parent
-                / f"tmp/pdf_{task.id}.pdf"
-            )
-            await self.md_worker.convert_file_to_pdf(job.markdown, str(path))
-
+            pdf_bytes = await self.md_worker.convert_file_to_pdf(job.markdown)
+            # upload file to S3
+            link = await FileUploadService.upload_file(pdf_bytes, str(task_msg.id))
             # update task and job status
-            task.pdf_url = str(path)
+            task.pdf_url = link
             task.status = StatusEnum.READY
             job.result_pdf_url = task.pdf_url
             await self.tasks_redis_cli.create_task(task)

@@ -16,6 +16,7 @@ shared = { path = "../shared", develop = true}
 aiofiles = "^25.1.0"
 aio-pika = "^9.5.8"
 redis = "^7.1.0"
+aiobotocore = "^3.1.0"
 
 
 

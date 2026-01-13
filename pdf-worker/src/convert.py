@@ -51,9 +51,9 @@ class PdfConverter:
         html = self._build_html(html_body, style)
         return html
 
-    async def convert_html_to_pdf(self, html: str, output_path: str) -> None:
+    async def convert_html_to_pdf(self, html: str) -> bytes:
         """
-        Convert HTML string to PDF file using Playwright and save.
+        Convert HTML string to PDF file using Playwright and return file bytes.
         """
         try:
             async with async_playwright() as p:
@@ -64,8 +64,7 @@ class PdfConverter:
                 await page.set_content(html)
 
                 # Generate PDF with specified options
-                await page.pdf(
-                    path=output_path,
+                file = await page.pdf(
                     format="A4",
                     print_background=True,
                     margin={
@@ -75,21 +74,21 @@ class PdfConverter:
                         "left": "20mm",
                     },
                 )
-
                 await browser.close()
+            return file
         except Exception as e:
             print(f"Error converting HTML to PDF: {e}")
             raise
 
     async def convert_file_to_pdf(
-        self, text: str, output_path: str, style_type: str = "default"
-    ) -> None:
+        self, text: str, style_type: str = "default"
+    ) -> bytes:
         """
         Convert Markdown to PDF.
         """
         try:
             html_text = await self.convert_to_html(text, style_type)
-            await self.convert_html_to_pdf(html_text, output_path)
+            return await self.convert_html_to_pdf(html_text)
         except FileNotFoundError:
             print("File not found")
             raise

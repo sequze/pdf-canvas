@@ -36,7 +36,7 @@ class S3Client:
         async with self.session.create_client("s3", **self.config) as client:
             yield client
 
-    async def upload_file(self, data: bytes, filename: str, ttl: int) -> str:
+    async def upload_file(self, data: bytes, filename: str) -> str:
         file_path = f"{self.folder}/{filename}" if self.folder else filename
         try:
             async with self.get_client() as client:

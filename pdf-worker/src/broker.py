@@ -1,17 +1,18 @@
 import json
 import logging
-import pathlib
-from typing import TYPE_CHECKING, Optional
+from random import random
+from typing import TYPE_CHECKING
 
 from shared import (
-    AbstractRabbitConsumer,
+    AbstractRabbitWorker,
     TaskMessage,
     TasksRedisClient,
     JobsRedisClient,
     StatusEnum,
-    JobStage,
 )
 from src.s3.utils import FileUploadService
+
+from src.config import settings
 
 if TYPE_CHECKING:
     from aio_pika.abc import AbstractIncomingMessage
@@ -21,8 +22,7 @@ from src.convert import PdfConverter
 logger = logging.getLogger(__name__)
 
 
-class RabbitWorker(AbstractRabbitConsumer):
-
+class RabbitWorker(AbstractRabbitWorker):
     def __init__(
         self,
         tasks_redis_cli: TasksRedisClient,
@@ -36,13 +36,19 @@ class RabbitWorker(AbstractRabbitConsumer):
         dlx: str | None = None,
         last_resort_queue: str | None = None,
     ):
-        super().__init__(host, port, login, password, max_retries, dlx, last_resort_queue)
+        super().__init__(
+            host, port, login, password, max_retries, dlx, last_resort_queue
+        )
         self.tasks_redis_cli = tasks_redis_cli
         self.job_redis_cli = job_redis_cli
         self.md_worker = md_worker
 
     async def process_message(self, message: "AbstractIncomingMessage"):
         try:
+            if random() > 0.2:
+                await message.nack(requeue=False)
+                logger.debug("Failed to process message. Sending to DLQ")
+                return
             # deserialize message
             task_msg = TaskMessage.model_validate(
                 json.loads(message.body.decode(encoding="utf-8"))
@@ -72,7 +78,9 @@ class RabbitWorker(AbstractRabbitConsumer):
             await self.job_redis_cli.put_job(job)
             logger.debug(f"Processed task: Task #{task.id}")
             await message.ack()
-            # TODO: send message
+            await self.publish_message(
+                settings.rmq.producer_queue, settings.rmq.exchange, message.body
+            )
         except Exception as e:
             await message.nack(requeue=False)
             logger.exception(f"Error processing message")

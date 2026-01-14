@@ -4,6 +4,7 @@ from shared import AwsError
 from .s3 import s3
 from src.config import settings
 
+
 class FileUploadService:
     """Сервис для загрузки изображений."""
 

@@ -26,5 +26,5 @@ __all__ = [
     "StatusEnum",
     "setup_rabbitmq_topology",
     "TopologyConfig",
-    "AwsError"
+    "AwsError",
 ]

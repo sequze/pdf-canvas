@@ -1,7 +1,12 @@
 import asyncio
 from src.config import settings
 from src.llm import LLMHelper, PromptHelper
-from shared import configure_logging, JobsRedisClient, TopologyConfig, setup_rabbitmq_topology
+from shared import (
+    configure_logging,
+    JobsRedisClient,
+    TopologyConfig,
+    setup_rabbitmq_topology,
+)
 from .broker import LLMRabbitWorker
 
 
@@ -14,8 +19,13 @@ async def main():
         exchange_name=settings.rmq.exchange,
         dlx_name=settings.rmq.dlx,
     )
-    await setup_rabbitmq_topology(topology_config, host=settings.rmq.host, port=settings.rmq.port,
-                                  login=settings.rmq.user, password=settings.rmq.password)
+    await setup_rabbitmq_topology(
+        topology_config,
+        host=settings.rmq.host,
+        port=settings.rmq.port,
+        login=settings.rmq.user,
+        password=settings.rmq.password,
+    )
     llm = LLMHelper(
         api_key=settings.llm.yandex_cloud_api_key,
         base_url=settings.llm.base_url,

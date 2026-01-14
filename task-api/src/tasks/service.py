@@ -11,6 +11,8 @@ from src.core.broker import rabbit
 from src.core.config import settings
 
 logger = logging.getLogger(__name__)
+
+
 class TasksService:
     def __init__(
         self,
@@ -65,8 +67,12 @@ class TasksService:
                 settings.rmq.exchange,
                 json.dumps(msg.model_dump()).encode(),
             )
-            logger.debug("Published message: %s. Exchange: %s, queue: %s", msg,settings.rmq.producer_queue,
-                settings.rmq.exchange)
+            logger.debug(
+                "Published message: %s. Exchange: %s, queue: %s",
+                msg,
+                settings.rmq.producer_queue,
+                settings.rmq.exchange,
+            )
         except Exception:
             # rollback in case of error
             await self.tasks_redis_cli.delete_task(task_id)

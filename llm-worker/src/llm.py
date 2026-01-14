@@ -5,7 +5,6 @@ from src.config import settings
 
 
 class PromptHelper:
-
     @staticmethod
     def read_file(filename: str, encoding: str = "utf-8") -> str:
         path = Path(filename)

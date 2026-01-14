@@ -57,9 +57,7 @@ class RabbitPublisher(RabbitHelper):
     async def publish_message(self, routing_key: str, exchange: str, message: bytes):
         exchange = await self._channel.get_exchange(exchange)
         logger.debug(f"Sending message {message} to #{routing_key} queue")
-        await exchange.publish(
-            aio_pika.Message(message), routing_key=routing_key
-        )
+        await exchange.publish(aio_pika.Message(message), routing_key=routing_key)
 
 
 class AbstractRabbitConsumer(RabbitHelper, ABC):
@@ -82,8 +80,7 @@ class AbstractRabbitConsumer(RabbitHelper, ABC):
     async def process_message(
         self,
         message: "AbstractIncomingMessage",
-    ):
-        ...
+    ): ...
 
     @staticmethod
     def get_message_deaths_count(message: "AbstractIncomingMessage") -> int:
@@ -95,8 +92,8 @@ class AbstractRabbitConsumer(RabbitHelper, ABC):
         return 0
 
     async def check_and_process_message(
-            self,
-            message: "AbstractIncomingMessage",
+        self,
+        message: "AbstractIncomingMessage",
     ):
         deaths_count = self.get_message_deaths_count(message)
         # If deaths_count exceeds max_retries, send message to last resort queue

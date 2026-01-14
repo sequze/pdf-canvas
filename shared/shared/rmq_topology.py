@@ -12,6 +12,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass
 class QueueConfig:
     """Queue configuration"""
@@ -208,6 +209,7 @@ class RabbitConfigurer:
     def main_exchange(self) -> AbstractExchange:
         """Main exchange for publishing messages"""
         return self.get_exchange(self.main_exchange_config.name)
+
 
 async def setup_rabbitmq_topology(
     config: "TopologyConfig",

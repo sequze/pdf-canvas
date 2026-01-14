@@ -1,6 +1,12 @@
 import asyncio
 from redis.asyncio import Redis
-from shared import configure_logging, JobsRedisClient, TasksRedisClient, TopologyConfig, setup_rabbitmq_topology
+from shared import (
+    configure_logging,
+    JobsRedisClient,
+    TasksRedisClient,
+    TopologyConfig,
+    setup_rabbitmq_topology,
+)
 from src.config import settings
 
 from src.convert import PdfConverter
@@ -16,7 +22,13 @@ if __name__ == "__main__":
             exchange_name=settings.rmq.exchange,
             dlx_name=settings.rmq.dlx,
         )
-        await setup_rabbitmq_topology(topology_config, host=settings.rmq.host, port=settings.rmq.port, login=settings.rmq.user, password=settings.rmq.password)
+        await setup_rabbitmq_topology(
+            topology_config,
+            host=settings.rmq.host,
+            port=settings.rmq.port,
+            login=settings.rmq.user,
+            password=settings.rmq.password,
+        )
 
         # Create redis instance
         redis = Redis(

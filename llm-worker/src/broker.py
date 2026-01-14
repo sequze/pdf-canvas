@@ -18,7 +18,6 @@ logger = logging.getLogger(__name__)
 
 
 class LLMRabbitWorker(AbstractRabbitWorker):
-
     def __init__(
         self,
         llm_worker: LLMHelper,
@@ -32,7 +31,9 @@ class LLMRabbitWorker(AbstractRabbitWorker):
         dlx: str | None = None,
         last_resort_queue: str | None = None,
     ):
-        super().__init__(host, port, login, password, max_retries, dlx, last_resort_queue)
+        super().__init__(
+            host, port, login, password, max_retries, dlx, last_resort_queue
+        )
         self.producer_queue = producer_queue
         self.jobs_redis_cli = jobs_redis_cli
         self.llm = llm_worker
@@ -64,9 +65,7 @@ class LLMRabbitWorker(AbstractRabbitWorker):
                     routing_key=self.producer_queue,
                     message=json.dumps(task.model_dump()).encode(),
                 )
-                logger.debug(
-                    f"Processed task: Task #{id}. Sent message to PDF-Worker."
-                )
+                logger.debug(f"Processed task: Task #{id}. Sent message to PDF-Worker.")
                 await message.ack()
                 return
             await message.nack(requeue=False)

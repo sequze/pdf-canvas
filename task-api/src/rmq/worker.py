@@ -81,7 +81,7 @@ class TaskFinishedConsumer(AbstractRabbitConsumer):
     async def _process_task_finished(self, result: TaskSchema):
         async with self.uow as uow:
             try:
-                await self.repository.save(self._prepare_data_to_create(result))
+                await self.repository.save(uow.session, self._prepare_data_to_create(result))
                 await uow.commit()
             except IntegrityError as e:
                 # Task already processed

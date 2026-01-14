@@ -12,8 +12,10 @@ def configure_logging(level: int = logging.DEBUG):
     )
     logging.getLogger("aio_pika").setLevel(logging.WARNING)
     logging.getLogger("aiormq").setLevel(logging.WARNING)
-
-
+    logging.getLogger("aiobotocore").setLevel(logging.WARNING)
+    logging.getLogger("botocore").setLevel(logging.WARNING)
+    logging.getLogger("urllib3").setLevel(logging.WARNING)
+    logging.getLogger("asyncio").setLevel(logging.WARNING)
 
 class TopologyConfig(BaseModel):
     """RabbitMQ topology configuration"""

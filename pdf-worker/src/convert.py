@@ -1,4 +1,5 @@
 import markdown
+import re
 from playwright.async_api import async_playwright
 import aiofiles
 
@@ -45,7 +46,14 @@ class PdfConverter:
 
     async def convert_to_html(self, md_text: str, style_type: str) -> str:
         html_body = markdown.markdown(
-            md_text, extensions=["fenced_code", "tables", "toc", "codehilite"]
+            md_text,
+            extensions=[
+                "fenced_code",
+                "tables",
+                "toc",
+                "codehilite",
+                "sane_lists"  # Правильная обработка списков
+            ]
         )
         style = await self._get_style(style_type)
         html = self._build_html(html_body, style)

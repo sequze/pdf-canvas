@@ -1,63 +1,218 @@
 /* ===== Общие стили ===== */
 body {
-    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-    font-size: 16px;
-    line-height: 1.6;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    font-size: 11pt;
+    line-height: 1.7;
     max-width: 900px;
-    margin: 40px auto;
-    padding: 0 20px;
-    color: #333;
-    background-color: #fafafa;
+    margin: 30px auto;
+    padding: 0 30px;
+    color: #24292e;
+    background-color: #ffffff;
 }
 
 /* ===== Заголовки ===== */
 h1, h2, h3, h4, h5, h6 {
     font-weight: 600;
-    color: #2c3e50;
-    margin-top: 1.5em;
-    margin-bottom: 0.5em;
-    line-height: 1.2;
+    color: #1a1a1a;
+    margin-top: 24px;
+    margin-bottom: 16px;
+    line-height: 1.25;
+    page-break-after: avoid;
 }
 
-h1 { font-size: 2.5em; }
-h2 { font-size: 2em; }
-h3 { font-size: 1.75em; }
-h4 { font-size: 1.5em; }
-h5 { font-size: 1.25em; }
+h1 {
+    font-size: 2em;
+    border-bottom: 2px solid #2c5282;
+    padding-bottom: 8px;
+    margin-top: 0;
+}
+
+h2 {
+    font-size: 1.6em;
+    border-bottom: 1px solid #cbd5e0;
+    padding-bottom: 6px;
+}
+
+h3 {
+    font-size: 1.4em;
+    color: #2d3748;
+    margin-top: 20px;
+    margin-bottom: 12px;
+}
+
+h4 {
+    font-size: 1.2em;
+    color: #4a5568;
+    margin-top: 16px;
+    margin-bottom: 10px;
+}
+
+h5 { font-size: 1.1em; }
 h6 { font-size: 1em; }
 
 /* ===== Параграфы ===== */
 p {
-    margin: 0.8em 0;
+    margin: 10px 0;
+    line-height: 1.7;
+}
+
+/* Параграфы с жирным текстом - как мини-заголовки */
+p > strong:only-child {
+    display: block;
+    font-size: 1.15em;
+    color: #1a202c;
+    margin-top: 18px;
+    margin-bottom: 8px;
+    font-weight: 600;
+}
+
+/* Жирный текст, заканчивающийся двоеточием - подзаголовок секции */
+p:has(strong) {
+    margin-top: 16px;
+    margin-bottom: 6px;
+}
+
+p strong {
+    font-size: 1.1em;
+    color: #2d3748;
+    font-weight: 600;
 }
 
 /* ===== Списки ===== */
 ul, ol {
-    margin: 0.8em 0 0.8em 2em;
+    margin: 12px 0 20px 0;
+    padding-left: 0;
+    list-style: none;
 }
 
 li {
-    margin: 0.4em 0;
+    margin: 8px 0;
+    padding-left: 28px;
+    line-height: 1.7;
+    position: relative;
+    page-break-inside: avoid;
 }
 
-/* ===== Ссылки ===== */
-a {
-    color: #3498db;
-    text-decoration: none;
-}
-a:hover {
-    text-decoration: underline;
+/* Стильные маркеры для списков */
+ul > li::before {
+    content: "•";
+    color: #3182ce;
+    font-weight: bold;
+    font-size: 1.3em;
+    position: absolute;
+    left: 10px;
+    top: -2px;
 }
 
-/* ===== Цитаты ===== */
-blockquote {
-    border-left: 4px solid #ccc;
-    padding-left: 1em;
-    color: #666;
-    font-style: italic;
+/* Вложенные списки - другие маркеры */
+ul ul > li::before {
+    content: "◦";
+    color: #4299e1;
+    font-size: 1.2em;
+    top: 0px;
+}
+
+ul ul ul > li::before {
+    content: "▪";
+    color: #63b3ed;
+    font-size: 1em;
+    top: 2px;
+}
+
+/* Нумерованные списки */
+ol {
+    counter-reset: item;
+}
+
+ol > li::before {
+    counter-increment: item;
+    content: counter(item) ".";
+    color: #3182ce;
+    font-weight: 600;
+    position: absolute;
+    left: 6px;
+    top: 0;
+}
+
+/* Вложенные нумерованные списки */
+ol ol {
+    counter-reset: subitem;
+}
+
+ol ol > li::before {
+    counter-increment: subitem;
+    content: counter(item) "." counter(subitem);
+    font-size: 0.95em;
+}
+
+/* Отступы для вложенных списков */
+ul ul, ol ul, ul ol, ol ol {
+    margin: 6px 0;
+    padding-left: 0;
+}
+
+/* Абзацы внутри списков */
+li > p {
+    margin: 4px 0;
+    display: inline;
+}
+
+/* Жирный текст внутри пункта списка */
+li strong {
+    color: #2d3748;
+    font-weight: 600;
+}
+
+/* Увеличенный отступ после секций с заголовками */
+h3 + ul,
+h4 + ul,
+strong + ul,
+p:has(strong) + ul {
+    margin-top: 8px;
+}
+
+/* Визуальное разделение между большими блоками */
+h3 {
+    margin-top: 28px;
+    padding-top: 12px;
+}
+
+h4 {
+    margin-top: 20px;
+}
+
+/* ===== Таблицы ===== */
+table {
+    border-collapse: collapse;
+    width: 100%;
     margin: 1em 0;
-    background-color: #f9f9f9;
 }
+
+th, td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}
+
+th {
+    background-color: #f4f4f4;
+}
+
+/* ===== Горизонтальная линия ===== */
+hr {
+    border: none;
+    border-top: 1px solid #ddd;
+    margin: 2em 0;
+}
+
+/* ===== Изображения ===== */
+img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 1em auto;
+}
+
 /* ===== Code block container ===== */
 
 .codehilite {
@@ -164,38 +319,3 @@ span.linenos.special { color: #e6edf3; background-color: #6e7681; padding-left: 
 .vi { color: #79C0FF } /* Name.Variable.Instance */
 .vm { color: #79C0FF } /* Name.Variable.Magic */
 .il { color: #A5D6FF } /* Literal.Number.Integer.Long */
-
-
-
-
-/* ===== Таблицы ===== */
-table {
-    border-collapse: collapse;
-    width: 100%;
-    margin: 1em 0;
-}
-
-th, td {
-    border: 1px solid #ddd;
-    padding: 8px;
-    text-align: left;
-}
-
-th {
-    background-color: #f4f4f4;
-}
-
-/* ===== Горизонтальная линия ===== */
-hr {
-    border: none;
-    border-top: 1px solid #ddd;
-    margin: 2em 0;
-}
-
-/* ===== Изображения ===== */
-img {
-    max-width: 100%;
-    height: auto;
-    display: block;
-    margin: 1em auto;
-}

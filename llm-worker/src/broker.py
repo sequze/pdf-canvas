@@ -1,6 +1,7 @@
 import json
 import logging
-from typing import TYPE_CHECKING, Optional
+import time
+from typing import TYPE_CHECKING
 
 from shared import (
     AbstractRabbitWorker,
@@ -10,6 +11,7 @@ from shared import (
 )
 from src.config import settings
 from src.llm import LLMHelper
+from src.metrics import prometheus_client
 
 if TYPE_CHECKING:
     from aio_pika.abc import AbstractIncomingMessage
@@ -39,6 +41,9 @@ class LLMRabbitWorker(AbstractRabbitWorker):
         self.llm = llm_worker
 
     async def process_message(self, message: "AbstractIncomingMessage"):
+        start_time = time.time()
+        prometheus_client.llm_tasks_in_progress.inc()
+        success = False
         try:
             # Deserialize message
             task = TaskMessage.model_validate(json.loads(message.body.decode()))
@@ -66,9 +71,19 @@ class LLMRabbitWorker(AbstractRabbitWorker):
                     message=json.dumps(task.model_dump()).encode(),
                 )
                 logger.debug(f"Processed task: Task #{id}. Sent message to PDF-Worker.")
-                await message.ack()
-                return
-            await message.nack(requeue=False)
+                success = True
+            if not md_text:
+                raise ValueError("Empty LLM response")
         except Exception as e:
-            await message.nack(requeue=False)
             logger.error(f"Failed to process task: {e}", exc_info=True)
+        finally:
+            duration = time.time() - start_time
+            if success:
+                await message.ack()
+                prometheus_client.llm_tasks_processed.inc()
+                prometheus_client.llm_task_duration.labels(result="success").observe(duration)
+            else:
+                await message.nack(requeue=False)
+                prometheus_client.llm_tasks_failed.inc()
+                prometheus_client.llm_task_duration.labels(result="failure").observe(duration)
+            prometheus_client.llm_tasks_in_progress.dec()

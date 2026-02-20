@@ -27,6 +27,8 @@ class YandexGptLLMConfig(BaseModel):
     def model(self) -> str:
         return f"gpt://{self.yandex_cloud_folder}/{self.yandex_cloud_model}"
 
+class PrometheusConfig(BaseModel):
+    port: int = 8000
 
 class Settings(BaseSettings):
     llm: YandexGptLLMConfig
@@ -39,6 +41,7 @@ class Settings(BaseSettings):
     llm_prompt: PromptConfig = PromptConfig()
     redis: RedisConfig
     rmq: BrokerConfig
+    prometheus: PrometheusConfig = PrometheusConfig()
 
 
 settings = Settings()

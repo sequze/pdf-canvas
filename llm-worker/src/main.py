@@ -8,11 +8,11 @@ from shared import (
     setup_rabbitmq_topology,
 )
 from .broker import LLMRabbitWorker
-
+from .metrics import prometheus_client
 
 async def main():
     configure_logging()
-
+    prometheus_client.start()
     # Create topology config for LLM worker
     topology_config = TopologyConfig.from_queue_name(
         queue_name=settings.rmq.consumer_queue,

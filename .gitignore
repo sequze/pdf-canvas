@@ -149,13 +149,15 @@ activemq-data/
 
 # Environments
 .env
-.envrc
+.env.local
+.env.*.local
 .venv
 env/
 venv/
 ENV/
 env.bak/
 venv.bak/
+.envrc
 
 # Spyder project settings
 .spyderproject
@@ -215,6 +217,7 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
-.env-docker
-tmp/
+# JWT keys (security sensitive)
+task-api/src/certs/*.pem
 api-gateway/src/certs
+

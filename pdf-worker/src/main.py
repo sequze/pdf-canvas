@@ -11,11 +11,13 @@ from src.config import settings
 
 from src.convert import PdfConverter
 from .broker import RabbitWorker
+from .metrics import prometheus_client
 
 if __name__ == "__main__":
     configure_logging()
 
     async def main():
+        prometheus_client.start()
         # Create topology config for PDF worker
         topology_config = TopologyConfig.from_queue_name(
             queue_name=settings.rmq.consumer_queue,

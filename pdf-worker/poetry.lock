@@ -750,6 +750,23 @@ greenlet = ">=3.1.1,<4.0.0"
 pyee = ">=13,<14"
 
 [[package]]
+name = "prometheus-client"
+version = "0.24.1"
+description = "Python client for the Prometheus monitoring system."
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "prometheus_client-0.24.1-py3-none-any.whl", hash = "sha256:150db128af71a5c2482b36e588fc8a6b95e498750da4b17065947c16070f4055"},
+    {file = "prometheus_client-0.24.1.tar.gz", hash = "sha256:7e0ced7fbbd40f7b84962d5d2ab6f17ef88a72504dcf7c0b40737b43b2a461f9"},
+]
+
+[package.extras]
+aiohttp = ["aiohttp"]
+django = ["django"]
+twisted = ["twisted"]
+
+[[package]]
 name = "propcache"
 version = "0.4.1"
 description = "Accelerated property cache"
@@ -1484,4 +1501,4 @@ propcache = ">=0.2.1"
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.13"
-content-hash = "83369f1b9e0cc7c0c9e0ba9325f4a65b9188a0de369b93bfe2488e505b2c94f5"
+content-hash = "283f360657fccdbcf53b500c49bd4edb2edbbd298cb95c0f40d1b8cb79050578"

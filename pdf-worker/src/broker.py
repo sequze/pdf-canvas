@@ -1,6 +1,6 @@
 import json
 import logging
-from random import random
+import time
 from typing import TYPE_CHECKING
 
 from shared import (
@@ -13,6 +13,7 @@ from shared import (
 from src.s3.utils import FileUploadService
 
 from src.config import settings
+from src.metrics import prometheus_client
 
 if TYPE_CHECKING:
     from aio_pika.abc import AbstractIncomingMessage
@@ -44,11 +45,10 @@ class RabbitWorker(AbstractRabbitWorker):
         self.md_worker = md_worker
 
     async def process_message(self, message: "AbstractIncomingMessage"):
+        start_time = time.time()
+        prometheus_client.pdf_tasks_in_progress.inc()
+        success = False
         try:
-            if random() > 0.2:
-                await message.nack(requeue=False)
-                logger.debug("Failed to process message. Sending to DLQ")
-                return
             # deserialize message
             task_msg = TaskMessage.model_validate(
                 json.loads(message.body.decode(encoding="utf-8"))
@@ -77,10 +77,24 @@ class RabbitWorker(AbstractRabbitWorker):
             await self.tasks_redis_cli.create_task(task)
             await self.job_redis_cli.put_job(job)
             logger.debug(f"Processed task: Task #{task.id}")
-            await message.ack()
             await self.publish_message(
                 settings.rmq.producer_queue, settings.rmq.exchange, message.body
             )
+            success = True
         except Exception as e:
-            await message.nack(requeue=False)
             logger.exception(f"Error processing message")
+        finally:
+            duration = time.time() - start_time
+            prometheus_client.pdf_tasks_in_progress.dec()
+            if success:
+                await message.ack()
+                prometheus_client.pdf_tasks_processed.inc()
+                prometheus_client.pdf_task_duration.labels(result="success").observe(
+                    duration
+                )
+            else:
+                await message.nack(requeue=False)
+                prometheus_client.pdf_tasks_failed.inc()
+                prometheus_client.pdf_task_duration.labels(result="failure").observe(
+                    duration
+                )

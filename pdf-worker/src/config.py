@@ -24,6 +24,8 @@ class AwsConfig(BaseModel):
     domain: str
     folder: str | None = None
 
+class PrometheusConfig(BaseModel):
+    port: int = 8000
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -36,6 +38,7 @@ class Settings(BaseSettings):
     md: MarkdownConfig = MarkdownConfig()
     redis: RedisConfig
     aws: AwsConfig
+    prometheus: PrometheusConfig = PrometheusConfig()
 
 
 settings = Settings()

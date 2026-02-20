@@ -32,6 +32,6 @@ class Job(BaseModel):
     id: UUID
     stage: JobStage
     input_text: str
-    markdown: str
-    result_pdf_url: str
-    error: str
+    markdown: str = ""
+    result_pdf_url: str = ""
+    error: str = ""

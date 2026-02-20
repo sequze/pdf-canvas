@@ -10,6 +10,7 @@ def configure_logging(level: int = logging.DEBUG):
         datefmt="%Y-%m-%d %H:%M:%S",
         format="[%(asctime)s.%(msecs)03d] %(funcName)20s %(module)s:%(lineno)d %(levelname)-8s - %(message)s",
     )
+    # Set library loggers to WARNING to reduce noise
     logging.getLogger("aio_pika").setLevel(logging.WARNING)
     logging.getLogger("aiormq").setLevel(logging.WARNING)
     logging.getLogger("aiobotocore").setLevel(logging.WARNING)

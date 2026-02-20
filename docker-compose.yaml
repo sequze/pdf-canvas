@@ -14,6 +14,7 @@ services:
     environment:
       RABBITMQ_DEFAULT_USER: ${RMQ_USER}
       RABBITMQ_DEFAULT_PASS: ${RMQ_PASSWORD}
+      RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS: -rabbitmq_prometheus
     volumes:
       - rabbitmq-data:/var/lib/rabbitmq
 
@@ -119,6 +120,16 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
+
+  redis-exporter:
+    image: bitnami/redis-exporter
+    environment:
+      REDIS_ADDR: "redis://redis:6379"
+    ports:
+      - "9121:9121"
+    depends_on:
+      - redis
+
   llm-worker:
     build:
       context: .
@@ -172,6 +183,64 @@ services:
       AWS__ENDPOINT_URL: ${AWS_ENDPOINT_URL}
       AWS__BUCKET_NAME: ${AWS_BUCKET_NAME}
       AWS__DOMAIN: ${AWS_DOMAIN}
+
+  # Observability
+  prometheus-app:
+    image: prom/prometheus:latest
+    restart: unless-stopped
+    container_name: prometheus-observer
+    ports:
+      - 9090:9090
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+
+  grafana:
+    image: grafana/grafana
+    container_name: grafana-observer
+    restart: unless-stopped
+    depends_on:
+      - prometheus-app
+      - loki-app
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+
+  loki-app:
+    image: grafana/loki:latest
+    container_name: loki-observer
+    restart: unless-stopped
+    ports:
+      - 3100:3100
+    volumes:
+      - ./loki/config.yml:/etc/loki/config.yaml
+
+  promtail-app:
+    image: grafana/promtail:latest
+    container_name: promtail-observer
+    restart: unless-stopped
+    volumes:
+      - ./promtail/config.yml:/etc/promtail/config.yaml  # Mount the Promtail config file
+      - /var/run/docker.sock:/var/run/docker.sock # Mount the Docker socket
+    command: [ "-config.file=/etc/promtail/config.yaml" ]
+    depends_on: # Ensure loki is available before promtail starts
+      - loki-app
+
+  postgresql-exporter:
+    image: prometheuscommunity/postgres-exporter
+    ports:
+      - "9187:9187"
+    environment:
+      DATA_SOURCE_NAME: "postgres://${PG_USER}:${PG_PASSWORD}@pg/${PG_NAME}?sslmode=disable"
+    depends_on:
+      prometheus-app:
+        condition: service_started
+      pg:
+        condition: service_healthy
+
 volumes:
   rabbitmq-data:
   pg_data:

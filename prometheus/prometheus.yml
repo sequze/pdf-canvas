@@ -1,0 +1,35 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'prometheus-observer'
+    static_configs:
+      - targets: ['localhost:9090']
+  - job_name: 'api'
+    scrape_interval: 5s
+    static_configs:
+      - targets: ['api:8000']
+  - job_name: 'loki-observer'
+    scrape_interval: 5s
+    static_configs:
+      - targets: ['loki-app:3100']
+
+  - job_name: 'rabbitmq'
+    static_configs:
+      - targets: [ 'rabbitmq:15692' ]
+
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+
+  - job_name: 'postgresql'
+    static_configs:
+      - targets: ['postgresql-exporter:9187']
+
+  - job_name: "llm-worker"
+    static_configs:
+      - targets: [ "llm-worker:8000" ]
+
+  - job_name: "pdf-worker"
+    static_configs:
+      - targets: [ "pdf-worker:8000" ]

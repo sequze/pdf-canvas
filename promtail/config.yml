@@ -1,0 +1,40 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0 # Disable gRPC, listen 9080 port
+
+positions:
+  filename: /tmp/positions.yaml # Save offset
+
+clients:
+  - url: http://loki-app:3100/loki/api/v1/push # Send logs to Loki
+
+scrape_configs:
+  - job_name: fastapi-docker-logs # Log group
+    docker_sd_configs: # Docker service discovery settings
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 15s
+    relabel_configs:
+      # Add container name as a label
+      - source_labels: ['__meta_docker_container_name']
+        regex: '/(.*)'
+        target_label: 'container_name'
+        replacement: '$1'
+
+      # Add image name as a label
+      - source_labels: ['__meta_docker_image_name']
+        target_label: 'image_name'
+
+      # Add compose service name as a label (if using docker compose)
+      - source_labels: ['__meta_docker_compose_service']
+        target_label: 'compose_service'
+
+      # Set the 'job' label
+      - target_label: 'job'
+        replacement: 'fastapi-docker-logs' # Match the job_name above
+
+    pipeline_stages:
+      # Optional: Parse logs if they are in a specific format (e.g., JSON)
+      # - json:
+      #     expressions:
+      #       level: level
+      #       message: log

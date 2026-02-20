@@ -76,8 +76,8 @@ class ApiPrefix(BaseModel):
 class TasksSettings(BaseModel):
     """Settings for tasks processing"""
 
-    # Maximum input data size in bytes (64 KB by default)
-    max_input_size: int = 1024 * 64
+    # Maximum input data size in bytes (128 KB by default)
+    max_input_size: int = 1024 * 128
     # Rate limit for task creation (string format for slowapi limiter)
     rate_limit: str = "3/5minute"
 

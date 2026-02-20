@@ -28,6 +28,7 @@ bcrypt = "^5.0.0"
 loguru = "^0.7.3"
 slowapi = "^0.1.9"
 pyjwt = {extras = ["crypto"], version = "^2.10.1"}
+prometheus-fastapi-instrumentator = "^7.1.0"
 
 [build-system]
 requires = ["poetry-core"]

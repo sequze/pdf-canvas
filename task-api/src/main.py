@@ -10,7 +10,7 @@ from src.middlewares import request_handler
 from src.routers import router
 from src.core.limiter import limiter
 from shared import configure_logging
-
+from prometheus_fastapi_instrumentator import Instrumentator
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -27,6 +27,11 @@ app = FastAPI(
     version=settings.docs.version,
     lifespan=lifespan,
 )
+
+# Add Prometheus instrumentation
+instrumentator = Instrumentator().instrument(app)
+instrumentator.expose(app)
+
 app.middleware("http")(request_handler)
 
 app.include_router(router)

@@ -1,5 +1,5 @@
 from uuid import UUID
-from fastapi import APIRouter, Depends, status, Request
+from fastapi import APIRouter, Depends, status, Request, HTTPException
 from shared import TaskSchema
 from src.core.limiter import limiter
 from src.auth.schemas import UserDTO
@@ -7,9 +7,22 @@ from src.core.config import settings
 from src.core.dependencies import get_current_active_user, get_task_service
 from src.tasks.schemas import CreateTaskRequest, StylesResponse
 from src.tasks.service import TasksService
-
+import asyncio
 router = APIRouter()
 
+@router.get("/slow-1s")
+async def slow_1s():
+    await asyncio.sleep(0.4)
+
+
+@router.get("/slow-3s")
+async def slow_3s():
+    await asyncio.sleep(3)
+
+@router.get("/error")
+async def slow_error():
+    await asyncio.sleep(0.5)
+    raise HTTPException(status_code=500, detail="Internal Server Error")
 
 @router.get("/", response_model=list[TaskSchema])
 async def get_tasks(
@@ -56,3 +69,4 @@ async def delete_task(
 ) -> None:
     """Delete task"""
     await task_service.delete_task(task_id, user.id, user.is_superuser)
+
